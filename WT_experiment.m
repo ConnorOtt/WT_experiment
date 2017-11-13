@@ -56,6 +56,12 @@
 %           [] = plot(varargin) is possible a plot wrapper, may trash it,
 %               may not.
 %
+%  Vocab hierarchy that I'm really gonna try to stick to:
+%       Experiment > Test > Trial == Sample > Data Point
+%   `   - There are sampleSize samples in a trial.
+%       - There are length(fullData) / sampleSize trials in a test.
+%       - There are probably like 2 or 3 tests in an experiment.
+%
 % Created: 11/3/17 - Connor Ott
 % Last Modified: 11/10/17 - Connor Ott
 %--------------------------------------------------------------------------
