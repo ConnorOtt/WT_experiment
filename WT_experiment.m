@@ -88,16 +88,19 @@ classdef WT_experiment
         ELDy
         fullData
         dataCalibrate
+        
     end
     properties (Dependent)
        lift
        drag
+       dragCoef
        V_pitot
        C_pPorts
     end
     properties 
         sampleSize
         fileName = '';
+        
     end
     methods
         % Constructor
@@ -246,6 +249,10 @@ classdef WT_experiment
             C_p = [C_pRaw(:, 1:8), zeros(r, 1), C_pRaw(:, 9:16)];
         end
         % Take the mean of some WT_experiments. 
+        function dragCoef = get.dragCoef(obj)
+           drag = obj.drag;
+           de
+        end
         function objMean = mean(tempObj, objCell)
             % To use a method need an input of the type of your
             % class, but I want this to work for cell arrays of my class so
@@ -400,11 +407,24 @@ classdef WT_experiment
                objZip = WT_experiment(fullDataTotal, sSize);
            end
         end
-    end
-    methods (Static)
-        function [] = plot(obj, varargin)
-            % This is hard, and maybe not as useful as I thought it would
-            % be
+    
+        function plot(obj, xName, yName, varargin)
+            g = groot;
+            if isempty(g.Children)
+                fig = figure;
+            else
+                fig = gcf;
+            end
+            % Plotting 
+            set(0, 'defaulttextinterpreter', 'latex')
+            hold on; grid on; grid minor; 
+            plot(obj.(xName), obj.(yName), varargin{:})
+            
+            set(gca, 'TickLabelInterpreter', 'latex',...
+                     'fontsize', 13, ...
+                     'box', 'on');
+            
+            
         end
     end
 end
