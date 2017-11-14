@@ -40,17 +40,30 @@
 %           obj = WT_experiment(dataSet, sampleSize) parses, averages, and,
 %               if necessary, separates calibration data of matrix 
 %               'dataSet' with sample size 'sampleSize'.
+%
 %           D = get.drag(obj) Supposedly should calculated drag when the
 %               drag property is requested. It's calculating it during
 %               construction so maybe I'm misunderstanding that. 
+%
 %           L = get.lift(obj) "" - for lift.
+%
 %           V = get.V_pitot(obj) "" - for velocity at pitot probe
 %               measurement. I actually don't remember if this is the
 %               useful velocity or not.
+%
 %           C_p = get.C_pPorts(obj) "" - Pressure coefficient from
 %               scanivalve port measurements. 
+%
 %           ObjMean = mean(tempObj, objCell) calculates the mean of a cell
-%               array of WT_experiment objects. 
+%               array of WT_experiment objects.
+%
+%           plot(obj, xName, yName, varargin) returns a plot with data 
+%               xName and data yName for obj using MATLAB plot.m line
+%               specifications. 
+%               
+%               Sytax: 
+%                   plot(obj, 'AoA', 'drag', 'rx', 'linewidth', 0.8)
+%               
 %               
 %  Methods (Static)
 %           [] = plot(varargin) is possible a plot wrapper, may trash it,
@@ -423,7 +436,6 @@ classdef WT_experiment
             set(gca, 'TickLabelInterpreter', 'latex',...
                      'fontsize', 13, ...
                      'box', 'on');
-            
             
         end
     end
