@@ -324,7 +324,7 @@ classdef WT_experiment
             end
             
         end
-        % Combine two objects with odd and even angles of attack into a
+        % Combine two objects with odd anmatlad even angles of attack into a
         % single object. 
         function objZip = AoAzip(obj1, obj2)
            %---------------------------------------------------------------
