@@ -40,17 +40,30 @@
 %           obj = WT_experiment(dataSet, sampleSize) parses, averages, and,
 %               if necessary, separates calibration data of matrix 
 %               'dataSet' with sample size 'sampleSize'.
+%
 %           D = get.drag(obj) Supposedly should calculated drag when the
 %               drag property is requested. It's calculating it during
 %               construction so maybe I'm misunderstanding that. 
+%
 %           L = get.lift(obj) "" - for lift.
+%
 %           V = get.V_pitot(obj) "" - for velocity at pitot probe
 %               measurement. I actually don't remember if this is the
 %               useful velocity or not.
+%
 %           C_p = get.C_pPorts(obj) "" - Pressure coefficient from
 %               scanivalve port measurements. 
+%
 %           ObjMean = mean(tempObj, objCell) calculates the mean of a cell
-%               array of WT_experiment objects. 
+%               array of WT_experiment objects.
+%
+%           plot(obj, xName, yName, varargin) returns a plot with data 
+%               xName and data yName for obj using MATLAB plot.m line
+%               specifications. 
+%               
+%               Sytax: 
+%                   plot(obj, 'AoA', 'drag', 'rx', 'linewidth', 0.8)
+%               
 %               
 %  Methods (Static)
 %           [] = plot(varargin) is possible a plot wrapper, may trash it,
@@ -88,16 +101,19 @@ classdef WT_experiment
         ELDy
         fullData
         dataCalibrate
+        
     end
     properties (Dependent)
        lift
        drag
+       dragCoef
        V_pitot
        C_pPorts
     end
     properties 
         sampleSize
-        testName = '';
+        fileName = '';
+        
     end
     methods
         % Constructor
@@ -192,7 +208,6 @@ classdef WT_experiment
                 % tests in dataSet. (If performed correctly).
                 cutOff = length(N_cal); 
                 numTest = length(obj.stingNormal) / cutOff;
-                
                 for i = 1:numTest
                     k = cutOff * i;
                     j = 1 + cutOff * (i - 1);
@@ -247,6 +262,10 @@ classdef WT_experiment
             C_p = [C_pRaw(:, 1:8), zeros(r, 1), C_pRaw(:, 9:16)];
         end
         % Take the mean of some WT_experiments. 
+        function dragCoef = get.dragCoef(obj)
+           drag = obj.drag;
+           de
+        end
         function objMean = mean(tempObj, objCell)
             % To use a method need an input of the type of your
             % class, but I want this to work for cell arrays of my class so
@@ -315,7 +334,10 @@ classdef WT_experiment
                 else
                     m = 1 + (temp1 + L_test - 1) * sSize;
                     n = (tempEnd + L_test) * sSize;
-                    parsedDataSet = obj.fullData(m:n, :);
+                    o = L_test * sSize; % End of calibration test
+                    parsedDataSet = [obj.fullData(1:o, :);...
+                                     obj.fullData(m:n, :)];
+                    
                 end
                 
                 objCell{i} = WT_experiment(parsedDataSet, sSize);
@@ -324,7 +346,7 @@ classdef WT_experiment
             end
             
         end
-        % Combine two objects with odd and even angles of attack into a
+        % Combine two objects with odd anmatlad even angles of attack into a
         % single object. 
         function objZip = AoAzip(obj1, obj2)
            %---------------------------------------------------------------
@@ -364,7 +386,7 @@ classdef WT_experiment
                
                
                L_exp = length(oddObj.AoA); % Experiment length
-               L_zipped = L_exp * 2; % Both experiments together
+               L_zipped = L_exp * 4; % Both experiments together
                fullDataOdd = oddObj.fullData;
                fullDataEven = evenObj.fullData;
                sSize = oddObj.sampleSize;
@@ -398,11 +420,23 @@ classdef WT_experiment
                objZip = WT_experiment(fullDataTotal, sSize);
            end
         end
-    end
-    methods (Static)
-        function [] = plot(obj, varargin)
-            % This is hard, and maybe not as useful as I thought it would
-            % be
+    
+        function plot(obj, xName, yName, varargin)
+            g = groot;
+            if isempty(g.Children)
+                fig = figure;
+            else
+                fig = gcf;
+            end
+            % Plotting 
+            set(0, 'defaulttextinterpreter', 'latex')
+            hold on; grid on; grid minor; 
+            plot(obj.(xName), obj.(yName), varargin{:})
+            
+            set(gca, 'TickLabelInterpreter', 'latex',...
+                     'fontsize', 13, ...
+                     'box', 'on');
+            
         end
     end
 end
