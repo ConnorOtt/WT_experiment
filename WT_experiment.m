@@ -97,7 +97,7 @@ classdef WT_experiment
     end
     properties 
         sampleSize
-        testName = '';
+        fileName = '';
     end
     methods
         % Constructor
@@ -192,7 +192,6 @@ classdef WT_experiment
                 % tests in dataSet. (If performed correctly).
                 cutOff = length(N_cal); 
                 numTest = length(obj.stingNormal) / cutOff;
-                
                 for i = 1:numTest
                     k = cutOff * i;
                     j = 1 + cutOff * (i - 1);
@@ -315,7 +314,10 @@ classdef WT_experiment
                 else
                     m = 1 + (temp1 + L_test - 1) * sSize;
                     n = (tempEnd + L_test) * sSize;
-                    parsedDataSet = obj.fullData(m:n, :);
+                    o = L_test * sSize; % End of calibration test
+                    parsedDataSet = [obj.fullData(1:o, :);...
+                                     obj.fullData(m:n, :)];
+                    
                 end
                 
                 objCell{i} = WT_experiment(parsedDataSet, sSize);
@@ -364,7 +366,7 @@ classdef WT_experiment
                
                
                L_exp = length(oddObj.AoA); % Experiment length
-               L_zipped = L_exp * 2; % Both experiments together
+               L_zipped = L_exp * 4; % Both experiments together
                fullDataOdd = oddObj.fullData;
                fullDataEven = evenObj.fullData;
                sSize = oddObj.sampleSize;
