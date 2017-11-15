@@ -5,7 +5,7 @@ dataSet = load('data/ExperimentalLab2_Section3_Group06_Even_Long.csv');
 m = WT_experiment(dataSet, 500);
 b = testParse(m, 'V_inf', [15, 25]);
 
-b{1}.isFinite = 0; % infinite
-b{1}.chord = 1;    % chord
+b{2}.isFinite = 0; % infinite
+b{2}.chord = 0.1;    % chord
 
-plot(b{1}, 'AoA', 'dragCoef', 'rx')
+plot(b{2}, 'AoA', 'liftCoef', 'rx')

@@ -65,10 +65,6 @@
 %                   plot(obj, 'AoA', 'drag', 'rx', 'linewidth', 0.8)
 %               
 %               
-%  Methods (Static)
-%           [] = plot(varargin) is possible a plot wrapper, may trash it,
-%               may not.
-%
 %  Vocab hierarchy that I'm really gonna try to stick to:
 %       Experiment > Test > Trial == Sample > Data Point
 %   `   - There are sampleSize data points in a trial (also called sample).
@@ -77,7 +73,8 @@
 %       - There are probably like 2 or 3 tests in an experiment (think 
 %         changing velocities).
 %       The last 2 can change from experiment to experiment, but there will
-%       always be sampleSize data points in a trial (or sample).
+%       always be sampleSize data points in a trial (or sample, as it could
+%       also be called).
 %
 %
 % Created: 11/3/17 - Connor Ott
@@ -108,16 +105,17 @@ classdef WT_experiment
         drag
         moment
         dragCoef
+        liftCoef
         V_pitot
         C_pPorts
     end
     properties 
         sampleSize
         fileName = '';
-        isFinite = 0;       % Speficies whether body is finite or infinite 
-                            % for aerodynamic coefficient. 
-        chord = 80085;      % [m] Chord length of infinite wing.
-        area = 80085;       % [m^2] Planform area of finite wing.
+        isFinite = [];   % Speficies whether body is finite or infinite 
+                         % for aerodynamic coefficient. 
+        chord = [];      % [m] Chord length of infinite wing.
+        area = [];       % [m^2] Planform area of finite wing.
     end
     methods
         % Constructor
@@ -290,17 +288,41 @@ classdef WT_experiment
             % Determines drag coefficient for body on sting balance. 
             % Must specify obj.isFinite and obj.chord or obj.area for
             % accurate calculations
+            if isempty(obj.isFinite)
+               error('obj.isFinite must be speficied') 
+            end
             if obj.isFinite
-                if obj.area == 80085
+                if isempty(obj.area)
                     error('obj.area must be speficied')
                 else
                     dragCoef = obj.drag ./ (obj.pitotDynamic * obj.area);
                 end
             else %isInfinite
-                if obj.chord == 80085
+                if isempty(obj.chord)
                     error('obj.chord must be speficied')
                 else
                     dragCoef = obj.drag ./ (obj.pitotDynamic * obj.chord);
+                end
+            end
+        end
+        function liftCoef = get.liftCoef(obj)
+            % Determines lift coefficient for body on sting balance. 
+            % Must specify obj.isFinite and obj.chord or obj.area for
+            % accurate calculations
+            if isempty(obj.isFinite)
+               error('obj.isFinite must be speficied') 
+            end
+            if obj.isFinite
+                if isempty(obj.area)
+                    error('obj.area must be speficied')
+                else
+                    liftCoef = obj.lift ./ (obj.pitotDynamic * obj.area);
+                end
+            else %isInfinite
+                if isempty(obj.chord)
+                    error('obj.chord must be speficied')
+                else
+                    liftCoef = obj.lift ./ (obj.pitotDynamic * obj.chord);
                 end
             end
         end
