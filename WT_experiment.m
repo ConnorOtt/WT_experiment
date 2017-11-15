@@ -114,10 +114,10 @@ classdef WT_experiment
     properties 
         sampleSize
         fileName = '';
-        isFinite = 0;   % Speficies whether body is finite or infinite 
-                        % for aerodynamic coefficient. 
-        chord = 1;      % [m] Chord length of airfoil being tested.
-        area = 1;       % [m^2] Planform area of finite wing being tested.
+        isFinite = 0;       % Speficies whether body is finite or infinite 
+                            % for aerodynamic coefficient. 
+        chord = 80085;      % [m] Chord length of infinite wing.
+        area = 80085;       % [m^2] Planform area of finite wing.
     end
     methods
         % Constructor
@@ -249,6 +249,7 @@ classdef WT_experiment
                 L = L';
             end
         end
+        % get moment - calculate pitching moment about sting balance
         function M = get.moment(obj)
            if isempty(obj.dataCalibrate)
                 error(['No sting balance calibrations found in' ...
@@ -265,11 +266,10 @@ classdef WT_experiment
                   M(j:k) = obj.stingPitch(j:k) - M_cal;
               end
               M = M'; 
-              
            end
             
         end
-        % get Velocity at pitot (good to have, m8)
+        % get Velocity at pitot
         function V = get.V_pitot(obj)
             q_inf = obj.pitotDynamic;
             rho_inf = obj.atmDensity;
@@ -290,8 +290,21 @@ classdef WT_experiment
             % Determines drag coefficient for body on sting balance. 
             % Must specify obj.isFinite and obj.chord or obj.area for
             % accurate calculations
-            if isFinite
+            if obj.isFinite
+                if obj.area == 80085
+                    error('obj.area must be speficied')
+                else
+                    dragCoef = obj.drag ./ (obj.pitotDynamic * obj.area);
+                end
+            else %isInfinite
+                if obj.chord == 80085
+                    error('obj.chord must be speficied')
+                else
+                    dragCoef = obj.drag ./ (obj.pitotDynamic * obj.chord);
+                end
+            end
         end
+        % Take the mean of a cell array of WT_experiment objects 
         function objMean = mean(tempObj, objCell)
             % To use a method need an input of the type of your
             % class, but I want this to work for cell arrays of my class so
@@ -372,8 +385,8 @@ classdef WT_experiment
             end
             
         end
-        % Combine two objects with odd anmatlad even angles of attack into a
-        % single object. 
+        % Combine two objects with odd anmatlad even angles of attack into 
+        % a single object. 
         function objZip = AoAzip(obj1, obj2)
            %---------------------------------------------------------------
            % To be used only with two objects wherein the only difference 
