@@ -65,10 +65,6 @@
 %                   plot(obj, 'AoA', 'drag', 'rx', 'linewidth', 0.8)
 %               
 %               
-%  Methods (Static)
-%           [] = plot(varargin) is possible a plot wrapper, may trash it,
-%               may not.
-%
 %  Vocab hierarchy that I'm really gonna try to stick to:
 %       Experiment > Test > Trial == Sample > Data Point
 %   `   - There are sampleSize data points in a trial (also called sample).
@@ -77,12 +73,14 @@
 %       - There are probably like 2 or 3 tests in an experiment (think 
 %         changing velocities).
 %       The last 2 can change from experiment to experiment, but there will
-%       always be sampleSize data points in a trial (or sample).
+%       always be sampleSize data points in a trial (or sample, as it could
+%       also be called).
 %
 %
 % Created: 11/3/17 - Connor Ott
-% Last Modified: 11/13/17 - Connor Ott
+% Last Modified: 11/14/17 - Connor Ott
 %--------------------------------------------------------------------------
+
 
 classdef WT_experiment
     properties (SetAccess = immutable)
@@ -101,19 +99,23 @@ classdef WT_experiment
         ELDy
         fullData
         dataCalibrate
-        
     end
     properties (Dependent)
-       lift
-       drag
-       dragCoef
-       V_pitot
-       C_pPorts
+        lift
+        drag
+        moment
+        dragCoef
+        liftCoef
+        V_pitot
+        C_pPorts
     end
     properties 
         sampleSize
         fileName = '';
-        
+        isFinite = [];   % Speficies whether body is finite or infinite 
+                         % for aerodynamic coefficient. 
+        chord = [];      % [m] Chord length of infinite wing.
+        area = [];       % [m^2] Planform area of finite wing.
     end
     methods
         % Constructor
@@ -245,7 +247,27 @@ classdef WT_experiment
                 L = L';
             end
         end
-        % get Velocity at pitot (good to have, m8)
+        % get moment - calculate pitching moment about sting balance
+        function M = get.moment(obj)
+           if isempty(obj.dataCalibrate)
+                error(['No sting balance calibrations found in' ...
+                       ' data set.']);
+           else
+              
+              M_cal = obj.dataCalibrate.stingPitch;
+              cutOff = length(M_cal);
+              numTests = length(obj.stingPitch) / cutOff;
+              
+              for i = 1:numTests
+                  k = cutOff * i;
+                  j = 1 + cutOff * (i - 1);
+                  M(j:k) = obj.stingPitch(j:k) - M_cal;
+              end
+              M = M'; 
+           end
+            
+        end
+        % get Velocity at pitot
         function V = get.V_pitot(obj)
             q_inf = obj.pitotDynamic;
             rho_inf = obj.atmDensity;
@@ -263,9 +285,48 @@ classdef WT_experiment
         end
         % Take the mean of some WT_experiments. 
         function dragCoef = get.dragCoef(obj)
-           drag = obj.drag;
-           de
+            % Determines drag coefficient for body on sting balance. 
+            % Must specify obj.isFinite and obj.chord or obj.area for
+            % accurate calculations
+            if isempty(obj.isFinite)
+               error('obj.isFinite must be speficied') 
+            end
+            if obj.isFinite
+                if isempty(obj.area)
+                    error('obj.area must be speficied')
+                else
+                    dragCoef = obj.drag ./ (obj.pitotDynamic * obj.area);
+                end
+            else %isInfinite
+                if isempty(obj.chord)
+                    error('obj.chord must be speficied')
+                else
+                    dragCoef = obj.drag ./ (obj.pitotDynamic * obj.chord);
+                end
+            end
         end
+        function liftCoef = get.liftCoef(obj)
+            % Determines lift coefficient for body on sting balance. 
+            % Must specify obj.isFinite and obj.chord or obj.area for
+            % accurate calculations
+            if isempty(obj.isFinite)
+               error('obj.isFinite must be speficied') 
+            end
+            if obj.isFinite
+                if isempty(obj.area)
+                    error('obj.area must be speficied')
+                else
+                    liftCoef = obj.lift ./ (obj.pitotDynamic * obj.area);
+                end
+            else %isInfinite
+                if isempty(obj.chord)
+                    error('obj.chord must be speficied')
+                else
+                    liftCoef = obj.lift ./ (obj.pitotDynamic * obj.chord);
+                end
+            end
+        end
+        % Take the mean of a cell array of WT_experiment objects 
         function objMean = mean(tempObj, objCell)
             % To use a method need an input of the type of your
             % class, but I want this to work for cell arrays of my class so
@@ -346,8 +407,8 @@ classdef WT_experiment
             end
             
         end
-        % Combine two objects with odd anmatlad even angles of attack into a
-        % single object. 
+        % Combine two objects with odd anmatlad even angles of attack into 
+        % a single object. 
         function objZip = AoAzip(obj1, obj2)
            %---------------------------------------------------------------
            % To be used only with two objects wherein the only difference 
@@ -420,23 +481,39 @@ classdef WT_experiment
                objZip = WT_experiment(fullDataTotal, sSize);
            end
         end
-    
+        % Plot two parameters of WT_experiment class against each other
         function plot(obj, xName, yName, varargin)
-            g = groot;
-            if isempty(g.Children)
-                fig = figure;
+            % Plots properties of obj, xName and yName, against each other.
+            % automatically does some beautification and writes titles and
+            % labels - these can be overwritten outside the plot command 
+            % afterwards if needed. 
+            if isempty(WTplotTools.(xName)) || isempty(WTplotTools.(yName))
+                error(['Plotting is not supported for one or both ', ...
+                      'of these properties.']);
             else
-                fig = gcf;
+                xPropName = WTplotTools.(xName).name;
+                xPropUnits = WTplotTools.(xName).units;
+                yPropName = WTplotTools.(yName).name;
+                yPropUnits = WTplotTools.(yName).units;
+                g = groot;
+                if isempty(g.Children)
+                    fig = figure;
+                else
+                    fig = gcf;
+                end
+                % Plotting
+                set(0, 'defaulttextinterpreter', 'latex')
+                hold on; grid on; grid minor;
+                plot(obj.(xName), obj.(yName), varargin{:})
+                
+                set(gca, 'TickLabelInterpreter', 'latex',...
+                    'fontsize', 13, ...
+                    'box', 'on');
+                title([xPropName, ' vs. ',yPropName]);
+                xlabel([xPropName,', ' xPropUnits]);
+                ylabel([yPropName,', ' yPropUnits])
+                
             end
-            % Plotting 
-            set(0, 'defaulttextinterpreter', 'latex')
-            hold on; grid on; grid minor; 
-            plot(obj.(xName), obj.(yName), varargin{:})
-            
-            set(gca, 'TickLabelInterpreter', 'latex',...
-                     'fontsize', 13, ...
-                     'box', 'on');
-            
         end
     end
 end
