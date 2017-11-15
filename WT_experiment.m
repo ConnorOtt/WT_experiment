@@ -106,6 +106,7 @@ classdef WT_experiment
     properties (Dependent)
        lift
        drag
+       moment
        dragCoef
        V_pitot
        C_pPorts
@@ -245,6 +246,26 @@ classdef WT_experiment
                 L = L';
             end
         end
+        function M = get.moment(obj)
+           if isempty(obj.dataCalibrate)
+                error(['No sting balance calibrations found in' ...
+                       ' data set.']);
+           else
+              
+              M_cal = obj.dataCalibrate.stingPitch;
+              cutOff = length(M_cal);
+              numTests = length(obj.stingPitch) / cutOff;
+              
+              for i = 1:numTests
+                  k = cutOff * i;
+                  j = 1 + cutOff * (i - 1);
+                  M(j:k) = obj.stingPitch(j:k) - M_cal;
+              end
+              M = M'; 
+              
+           end
+            
+        end
         % get Velocity at pitot (good to have, m8)
         function V = get.V_pitot(obj)
             q_inf = obj.pitotDynamic;
@@ -262,10 +283,9 @@ classdef WT_experiment
             C_p = [C_pRaw(:, 1:8), zeros(r, 1), C_pRaw(:, 9:16)];
         end
         % Take the mean of some WT_experiments. 
-        function dragCoef = get.dragCoef(obj)
-           drag = obj.drag;
-           de
-        end
+%         function dragCoef = get.dragCoef(obj)
+%           
+%         end
         function objMean = mean(tempObj, objCell)
             % To use a method need an input of the type of your
             % class, but I want this to work for cell arrays of my class so
