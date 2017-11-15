@@ -81,8 +81,9 @@
 %
 %
 % Created: 11/3/17 - Connor Ott
-% Last Modified: 11/13/17 - Connor Ott
+% Last Modified: 11/14/17 - Connor Ott
 %--------------------------------------------------------------------------
+
 
 classdef WT_experiment
     properties (SetAccess = immutable)
@@ -101,20 +102,22 @@ classdef WT_experiment
         ELDy
         fullData
         dataCalibrate
-        
     end
     properties (Dependent)
-       lift
-       drag
-       moment
-       dragCoef
-       V_pitot
-       C_pPorts
+        lift
+        drag
+        moment
+        dragCoef
+        V_pitot
+        C_pPorts
     end
     properties 
         sampleSize
         fileName = '';
-        
+        isFinite = 0;   % Speficies whether body is finite or infinite 
+                        % for aerodynamic coefficient. 
+        chord = 1;      % [m] Chord length of airfoil being tested.
+        area = 1;       % [m^2] Planform area of finite wing being tested.
     end
     methods
         % Constructor
@@ -283,9 +286,12 @@ classdef WT_experiment
             C_p = [C_pRaw(:, 1:8), zeros(r, 1), C_pRaw(:, 9:16)];
         end
         % Take the mean of some WT_experiments. 
-%         function dragCoef = get.dragCoef(obj)
-%           
-%         end
+        function dragCoef = get.dragCoef(obj)
+            % Determines drag coefficient for body on sting balance. 
+            % Must specify obj.isFinite and obj.chord or obj.area for
+            % accurate calculations
+            if isFinite
+        end
         function objMean = mean(tempObj, objCell)
             % To use a method need an input of the type of your
             % class, but I want this to work for cell arrays of my class so
@@ -440,23 +446,39 @@ classdef WT_experiment
                objZip = WT_experiment(fullDataTotal, sSize);
            end
         end
-    
+        % Plot two parameters of WT_experiment class against each other
         function plot(obj, xName, yName, varargin)
-            g = groot;
-            if isempty(g.Children)
-                fig = figure;
+            % Plots properties of obj, xName and yName, against each other.
+            % automatically does some beautification and writes titles and
+            % labels - these can be overwritten outside the plot command 
+            % afterwards if needed. 
+            if isempty(WTplotTools.(xName)) || isempty(WTplotTools.(yName))
+                error(['Plotting is not supported for one or both ', ...
+                      'of these properties.']);
             else
-                fig = gcf;
+                xPropName = WTplotTools.(xName).name;
+                xPropUnits = WTplotTools.(xName).units;
+                yPropName = WTplotTools.(yName).name;
+                yPropUnits = WTplotTools.(yName).units;
+                g = groot;
+                if isempty(g.Children)
+                    fig = figure;
+                else
+                    fig = gcf;
+                end
+                % Plotting
+                set(0, 'defaulttextinterpreter', 'latex')
+                hold on; grid on; grid minor;
+                plot(obj.(xName), obj.(yName), varargin{:})
+                
+                set(gca, 'TickLabelInterpreter', 'latex',...
+                    'fontsize', 13, ...
+                    'box', 'on');
+                title([xPropName, ' vs. ',yPropName]);
+                xlabel([xPropName,', ' xPropUnits]);
+                ylabel([yPropName,', ' yPropUnits])
+                
             end
-            % Plotting 
-            set(0, 'defaulttextinterpreter', 'latex')
-            hold on; grid on; grid minor; 
-            plot(obj.(xName), obj.(yName), varargin{:})
-            
-            set(gca, 'TickLabelInterpreter', 'latex',...
-                     'fontsize', 13, ...
-                     'box', 'on');
-            
         end
     end
 end
