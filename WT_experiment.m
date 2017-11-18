@@ -106,16 +106,17 @@ classdef WT_experiment
         moment
         dragCoef
         liftCoef
+        momCoefAtx
         V_pitot
         C_pPorts
     end
     properties 
         sampleSize
         fileName = '';
-        isFinite = [];   % Speficies whether body is finite or infinite 
-                         % for aerodynamic coefficient. 
-        chord = [];      % [m] Chord length of infinite wing.
         area = [];       % [m^2] Planform area of finite wing.
+        chord = [];      % [m] Chord Length
+        momDist = [];    % [m] Distance from sting to point to take moment 
+                         %     about
     end
     methods
         % Constructor
@@ -267,7 +268,6 @@ classdef WT_experiment
            end
             
         end
-        % get Velocity at pitot
         function V = get.V_pitot(obj)
             q_inf = obj.pitotDynamic;
             rho_inf = obj.atmDensity;
@@ -283,49 +283,60 @@ classdef WT_experiment
             % Interpolation for the "trailing edge port" (possibly)
             C_p = [C_pRaw(:, 1:8), zeros(r, 1), C_pRaw(:, 9:16)];
         end
-        % Take the mean of some WT_experiments. 
         function dragCoef = get.dragCoef(obj)
             % Determines drag coefficient for body on sting balance. 
-            % Must specify obj.isFinite and obj.chord or obj.area for
-            % accurate calculations
-            if isempty(obj.isFinite)
-               error('obj.isFinite must be speficied') 
+            % Must specify obj.area befor query.
+            
+            if isempty(obj.area)
+                error('obj.area must be speficied')
+            else
+                dragCoef = obj.drag ./ (obj.pitotDynamic * obj.area);
             end
-            if obj.isFinite
-                if isempty(obj.area)
-                    error('obj.area must be speficied')
-                else
-                    dragCoef = obj.drag ./ (obj.pitotDynamic * obj.area);
-                end
-            else %isInfinite
-                if isempty(obj.chord)
-                    error('obj.chord must be speficied')
-                else
-                    dragCoef = obj.drag ./ (obj.pitotDynamic * obj.chord);
-                end
-            end
+            
         end
         function liftCoef = get.liftCoef(obj)
             % Determines lift coefficient for body on sting balance. 
             % Must specify obj.isFinite and obj.chord or obj.area for
             % accurate calculations
-            if isempty(obj.isFinite)
-               error('obj.isFinite must be speficied') 
+            
+            if isempty(obj.area)
+                error('obj.area must be speficied')
+            else
+                liftCoef = obj.lift ./ (obj.pitotDynamic * obj.area);
             end
-            if obj.isFinite
-                if isempty(obj.area)
-                    error('obj.area must be speficied')
-                else
-                    liftCoef = obj.lift ./ (obj.pitotDynamic * obj.area);
-                end
-            else %isInfinite
-                if isempty(obj.chord)
-                    error('obj.chord must be speficied')
-                else
-                    liftCoef = obj.lift ./ (obj.pitotDynamic * obj.chord);
-                end
-            end
+            
         end
+        function momCoef = get.momCoefAtx(obj)
+           % Get the pitching moment at a distance x from the sting balance
+           % reference. 
+           
+           if isempty(obj.dataCalibrate)
+                error(['No sting balance calibrations found in' ...
+                       ' data set.']);
+           elseif isempty(obj.area) || isempty(obj.chord) || ...
+                  isempty(obj.momDist)
+               error(['obj.area, obj.chord, and obj.momDist must be',...
+                      ' speficied.'])
+           else
+              stingMom = obj.moment; 
+              normal = obj.stingNormal;
+              N_cal = obj.dataCalibrate.stingNormal;
+              q_inf = obj.pitotDynamic;
+              x = obj.momDist;
+              
+              cutOff = length(N_cal);
+              numTests = length(stingMom) / cutOff;
+              
+              for i = 1:numTests
+                  k = cutOff * i;
+                  j = 1 + cutOff * (i - 1);
+                  momCoef(j:k) = (stingMom(j:k) - ...
+                                 (normal(j:k) - N_cal)*x)./...
+                                 (q_inf(j:k) * obj.area * obj.chord);
+              end
+              momCoef = momCoef';
+           end
+        end     
         % Take the mean of a cell array of WT_experiment objects 
         function objMean = mean(tempObj, objCell)
             % To use a method need an input of the type of your

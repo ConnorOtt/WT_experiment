@@ -3,9 +3,11 @@ clear; close all; clc;
 
 dataSet = load('data/ExperimentalLab2_Section3_Group06_Even_Long.csv');
 m = WT_experiment(dataSet, 500);
-b = testParse(m, 'V_inf', [15, 25]);
+m.fileName = 'ExperimentalLab2_Section3_Group06_Even_Long.csv';
 
-b{2}.isFinite = 0; % infinite
-b{2}.chord = 0.1;    % chord
+m.area = 0.0144;
+m.chord = 0.06;
+m.momDist = 0.07;
+plot(m, 'AoA', 'momCoefAtx', 'rx', 'linewidth', 1)
 
-plot(b{2}, 'AoA', 'liftCoef', 'rx')
+
